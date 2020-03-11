@@ -1,0 +1,8 @@
+[flake8]
+ignore = 
+    E501 # ignore 'line too long' error 
+    E722 # ignore 'except' error
+max-line-length = 120
+exclude = 
+    .virtualenv,
+    .vscode
