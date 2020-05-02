@@ -91,6 +91,26 @@ class PttWebCrawler(object):
         self.store(filename, u']}', 'a')
         return filename
 
+    def crawl_articles(self, start, end, board, cb, timeout=3):
+        for i in range(end - start + 1):
+            index = start + i
+            print('Processing index:', str(index))
+            resp = requests.get(
+                url=self.PTT_URL + '/bbs/' + board + '/index' + str(index) + '.html',
+                cookies={'over18': '1'}, verify=VERIFY, timeout=timeout
+            )
+            if resp.status_code != 200:
+                print('invalid url:', resp.url)
+                continue
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            divs = soup.find_all("div", "r-ent")
+            for div in divs:
+                # ex. link would be <a href="/bbs/PublicServan/M.1127742013.A.240.html">Re: [問題] 職等</a>
+                href = div.find('a')['href']
+                link = self.PTT_URL + href
+                article_id = re.sub(r'\.html', '', href.split('/')[-1])
+                cb(self.parse(link, article_id, board))
+
     def parse_article(self, article_id, board, path='.'):
         link = self.PTT_URL + '/bbs/' + board + '/' + article_id + '.html'
         filename = board + '-' + article_id + '.json'
@@ -129,7 +149,7 @@ class PttWebCrawler(object):
 
         try:
             ip = main_content.find(text=re.compile(u'※ 發信站:'))
-            ip = re.search('[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*', ip).group()
+            ip = re.search(r'[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*', ip).group()
         except:
             ip = "None"
 
@@ -195,7 +215,7 @@ class PttWebCrawler(object):
             url='https://www.ptt.cc/bbs/' + board + '/index.html',
             cookies={'over18': '1'}, timeout=timeout
         ).content.decode('utf-8')
-        first_page = re.search(r'href="/bbs/' + board + '/index(\d+).html">&lsaquo;', content)
+        first_page = re.search(r'href="/bbs/' + board + r'/index(\d+).html">&lsaquo;', content)
         if first_page is None:
             return 1
         return int(first_page.group(1)) + 1

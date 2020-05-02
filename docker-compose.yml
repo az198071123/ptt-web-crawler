@@ -1,0 +1,12 @@
+version: '3.5'
+services:
+
+    mongo:
+      container_name: 'ptt-give-mongo'
+      image: mongo
+      environment:
+        - MONGO_INITDB_DATABASE=ptt-give
+      volumes:
+        - ./docker/mongo:/data/db
+      ports:
+        - "27017:27017"

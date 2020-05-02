@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
-import json
-import os
-import sys
 from datetime import datetime
+import json
 from json import JSONDecodeError
+import os
 from subprocess import call
+import sys
+import traceback
+from typing import List
 
 import requests
 from requests.exceptions import ReadTimeout
 
 from PttWebCrawler.crawler import PttWebCrawler
-import traceback
+from model.mongo import Articles
 
 watch = ['微波爐', '風扇', '內湖', '松山', ]
 ignore = ['[公告]', ]
@@ -88,7 +90,20 @@ def run_ptt_give_crawler():
                 raise
         os.replace(loadfile_after, loadfile_before)
 
+    # diff_v1(articles_before, articles_after)
+    diff_v2(articles_after)
+    return True
+
+
+def run_ptt_give_crawler_v2():
+    board = 'give'
+    start_no, end_no = 0, 0
+    PttWebCrawler(as_lib=True).crawl_articles(start_no, end_no, board, on_crawled)
+
+
+def diff_v1(articles_before: List[dict], articles_after: List[dict]):
     # diff 策略: A-B 差集
+    # diff(articles_before, articles_after)
     before_map = {item["article_id"]: item for item in articles_before}
     after_map = {item["article_id"]: item for item in articles_after}
     diff_ids = after_map.keys() - before_map.keys()
@@ -97,41 +112,58 @@ def run_ptt_give_crawler():
     if diff_ids:
         for article_id in diff_ids:
             content = after_map[article_id]
-            title = content['article_title']
-            cont = content['content']
-            url = content['url']
-
-            #
-            is_continue = False
-            for i in ignore:
-                if i in title:
-                    print_log(f'ignore({title})')
-                    is_continue = True
-            if is_continue:
-                continue
-
-            #
-            print_log(f'article_id={article_id}, title={title}', 'notification')
-            call(["osascript", "-e",
-                  f'display notification \"{cont}\" with title \"{title}\" subtitle \"{url}\" sound name \"Pop\"'])
-
-            #
-            for w in watch:
-                if w in title or w in cont:
-                    call(["osascript", "-e", f'display alert \"{title}\" message \"{cont}\"'])
-                    send_ifttt_webhook(title, cont)
-                    break
-
+            notify(content)
     else:
         print_log('no diff')
-    return True
+
+
+def diff_v2(articles_after: List[dict]):
+    for item in articles_after:
+        find = Articles.objects.filter(pk=item['article_id'])
+        if not find:
+            notify(item)
+        Articles(**item).save()
+
+
+def on_crawled(json_string: str):
+    article = json.loads(json_string)
+    find = Articles.objects.filter(pk=article['article_id'])
+    if not find:
+        notify(article)
+    Articles(**article).save()
+
+
+def notify(item: dict):
+    article_id = item['article_id']
+    title = item['article_title']
+    cont = item['content']
+    url = item['url']
+
+    # chekc ignore
+    for i in ignore:
+        if i in title:
+            print_log(f'title={title}', 'ignore')
+            return
+
+    # notify mac os
+    print_log(f'article_id={article_id}, title={title}', 'notification')
+    call(["osascript", "-e",
+          f'display notification \"{cont}\" with title \"{title}\" subtitle \"{url}\" sound name \"Pop\"'])
+
+    # notify phone
+    for w in watch:
+        if w in title or w in cont:
+            # call(["osascript", "-e", f'display alert \"{title}\" message \"{cont}\"'])
+            send_ifttt_webhook(title, cont)
+            break
 
 
 if __name__ == '__main__':
     try:
         ts = datetime.now().timestamp()
         print_log(f'=========== start({ts}) =========== ')
-        run_ptt_give_crawler()
+        # run_ptt_give_crawler()
+        run_ptt_give_crawler_v2()
         print_log(f'=========== end({ts}) =========== ')
     except ReadTimeout as e:
         print_exception(e)
