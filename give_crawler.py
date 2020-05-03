@@ -127,16 +127,18 @@ def diff_v2(articles_after: List[dict]):
 
 def on_crawled(json_string: str):
     article = json.loads(json_string)
-    find = Articles.objects.filter(pk=article['article_id'])
+    find = Articles.objects.filter(pk=article['article_id']).first()
     if not find:
         notify(article)
-    Articles(**article).save()
+        Articles(**article).save()
+    else:
+        find.update(**article, updated_at=datetime.now())
 
 
 def notify(item: dict):
     article_id = item['article_id']
     title = item['article_title']
-    cont = item['content']
+    content = item['content']
     url = item['url']
 
     # chekc ignore
@@ -148,26 +150,28 @@ def notify(item: dict):
     # notify mac os
     print_log(f'article_id={article_id}, title={title}', 'notification')
     call(["osascript", "-e",
-          f'display notification \"{cont}\" with title \"{title}\" subtitle \"{url}\" sound name \"Pop\"'])
+          f'display notification \"{content}\" with title \"{title}\" subtitle \"{url}\" sound name \"Pop\"'])
 
     # notify phone
     for w in watch:
-        if w in title or w in cont:
+        if w in title or w in content:
             # call(["osascript", "-e", f'display alert \"{title}\" message \"{cont}\"'])
-            send_ifttt_webhook(title, cont)
+            send_ifttt_webhook(title, content)
             break
 
 
 if __name__ == '__main__':
     try:
-        ts = datetime.now().timestamp()
-        print_log(f'=========== start({ts}) =========== ')
+        print_log(f'=========== start({datetime.now().timestamp()}) =========== ')
         # run_ptt_give_crawler()
         run_ptt_give_crawler_v2()
-        print_log(f'=========== end({ts}) =========== ')
+        print_log(f'=========== end({datetime.now().timestamp()}) =========== ')
     except ReadTimeout as e:
         print_exception(e)
     except Exception as e:
-        cmd = f'display notification \" {e} \" with title \"give 爬蟲錯誤 {type(e)}\" sound name \"Glass\"'
+        title = 'give 爬蟲錯誤'
+        print_log(title, 'notification')
+        # cmd = 'display notification \"test\" with title \"title\" subtitle \"subtitle\" sound name \"Glass\"'
+        cmd = f'display notification \"{type(e)}\" with title \"{title}\" sound name \"Glass\"'
         call(["osascript", "-e", cmd])
         print_exception(e)

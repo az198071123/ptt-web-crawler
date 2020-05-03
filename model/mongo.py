@@ -18,6 +18,7 @@ class Articles(Document):
     messages = ListField(DictField())
     url = URLField()
     created_at = DateTimeField(default=datetime.now)
+    updated_at = DateTimeField(default=datetime.now)
 
     meta = {'allow_inheritance': True}
 
