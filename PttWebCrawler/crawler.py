@@ -78,7 +78,12 @@ class PttWebCrawler(object):
             for div in divs:
                 try:
                     # ex. link would be <a href="/bbs/PublicServan/M.1127742013.A.240.html">Re: [問題] 職等</a>
-                    href = div.find('a')['href']
+                    find = div.find('a')
+                    if find is None:
+                        continue
+                    href = find.get('href', None)
+                    if href is None:
+                        continue
                     link = self.PTT_URL + href
                     article_id = re.sub(r'\.html', '', href.split('/')[-1])
                     if div == divs[-1] and i == end - start:  # last div of last page
@@ -94,9 +99,10 @@ class PttWebCrawler(object):
     def crawl_articles(self, start, end, board, cb, timeout=3):
         for i in range(end - start + 1):
             index = start + i
-            print('Processing index:', str(index))
+            url = f'{self.PTT_URL}/bbs/{board}/index{index}.html'
+            print('Processing url:', url)
             resp = requests.get(
-                url=self.PTT_URL + '/bbs/' + board + '/index' + str(index) + '.html',
+                url=url,
                 cookies={'over18': '1'}, verify=VERIFY, timeout=timeout
             )
             if resp.status_code != 200:
@@ -106,7 +112,14 @@ class PttWebCrawler(object):
             divs = soup.find_all("div", "r-ent")
             for div in divs:
                 # ex. link would be <a href="/bbs/PublicServan/M.1127742013.A.240.html">Re: [問題] 職等</a>
-                href = div.find('a')['href']
+                # print(div)
+                # 被刪除的文章沒有 a 屬性
+                find = div.find('a')
+                if find is None:
+                    continue
+                href = find.get('href', None)
+                if href is None:
+                    continue
                 link = self.PTT_URL + href
                 article_id = re.sub(r'\.html', '', href.split('/')[-1])
                 cb(self.parse(link, article_id, board))
