@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 import json
-from json import JSONDecodeError
 import os
-from subprocess import call
 import sys
 import traceback
+from datetime import datetime
+from json import JSONDecodeError
+from subprocess import call
 from typing import List
 
 import requests
 from requests.exceptions import ReadTimeout
 
-from PttWebCrawler.crawler import PttWebCrawler
 from model.mongo import Articles
+from PttWebCrawler.crawler import PttWebCrawler
 
-watch = ['微波爐', '風扇', '內湖', '松山', ]
+watch = ['微波爐', '風扇', '電扇', '內湖', '松山', 'Mac', 'iPhone']
 ignore = ['[公告]', ]
 
 IFTTT_TOKEN = os.environ.get('IFTTT_TOKEN', '')
@@ -127,6 +127,9 @@ def diff_v2(articles_after: List[dict]):
 
 def on_crawled(json_string: str):
     article = json.loads(json_string)
+    if 'article_id' not in article:
+        print_log(article, 'on_crawled')
+        return
     find = Articles.objects.filter(pk=article['article_id']).first()
     if not find:
         notify(article)
@@ -139,22 +142,22 @@ def notify(item: dict):
     article_id = item['article_id']
     title = item['article_title']
     content = item['content']
-    url = item['url']
+    date = item['date']
 
     # chekc ignore
     for i in ignore:
-        if i in title:
+        if i.lower() in title.lower():
             print_log(f'title={title}', 'ignore')
             return
 
     # notify mac os
     print_log(f'article_id={article_id}, title={title}', 'notification')
     call(["osascript", "-e",
-          f'display notification \"{content}\" with title \"{title}\" subtitle \"{url}\" sound name \"Pop\"'])
+          f'display notification \"{content}\" with title \"{title}\" subtitle \"{date}\" sound name \"Pop\"'])
 
     # notify phone
     for w in watch:
-        if w in title or w in content:
+        if w.lower() in title.lower() or w.lower() in content.lower():
             # call(["osascript", "-e", f'display alert \"{title}\" message \"{cont}\"'])
             send_ifttt_webhook(title, content)
             break

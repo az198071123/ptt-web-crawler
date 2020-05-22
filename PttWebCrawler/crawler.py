@@ -145,9 +145,21 @@ class PttWebCrawler(object):
         title = ''
         date = ''
         if metas:
-            author = metas[0].select('span.article-meta-value')[0].string if metas[0].select('span.article-meta-value')[0] else author
-            title = metas[1].select('span.article-meta-value')[0].string if metas[1].select('span.article-meta-value')[0] else title
-            date = metas[2].select('span.article-meta-value')[0].string if metas[2].select('span.article-meta-value')[0] else date
+            for meta in metas:
+                meta_tag = meta.select('span.article-meta-tag')[0].string
+                meta_value = meta.select('span.article-meta-value')[0].string
+                if meta_tag == '作者':
+                    author = meta_value
+                if meta_tag == '標題':
+                    title = meta_value
+                if meta_tag == '時間':
+                    date = meta_value
+            # author = metas[0].select(
+            #     'span.article-meta-value')[0].string if len(metas) > 0 and metas[0].select('span.article-meta-value')[0] else author
+            # title = metas[1].select(
+            #     'span.article-meta-value')[0].string if len(metas) > 1 and metas[1].select('span.article-meta-value')[0] else title
+            # date = metas[2].select(
+            #     'span.article-meta-value')[0].string if len(metas) > 2 and metas[2].select('span.article-meta-value')[0] else date
 
             # remove meta nodes
             for meta in metas:
