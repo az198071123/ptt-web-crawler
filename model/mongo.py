@@ -1,9 +1,16 @@
 from datetime import datetime
 
-from mongoengine.document import Document
-from mongoengine.fields import DateTimeField, DictField, ListField, StringField, URLField
 from mongoengine.connection import connect
-connect('ptt-give', host='localhost', port=27017)
+from mongoengine.document import Document
+from mongoengine.fields import (
+    DateTimeField,
+    DictField,
+    ListField,
+    StringField,
+    URLField,
+)
+
+connect("ptt-give", host="localhost", port=27007)
 
 
 class Articles(Document):
@@ -19,8 +26,7 @@ class Articles(Document):
     url = URLField()
     created_at = DateTimeField(default=datetime.now)
     updated_at = DateTimeField(default=datetime.now)
-
-    meta = {'allow_inheritance': True}
+    meta = {"allow_inheritance": True}
 
 
 # class BlogPost(Document):

@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 import json
+from json import JSONDecodeError
 import os
+from subprocess import call
 import sys
 import traceback
-from datetime import datetime
-from json import JSONDecodeError
-from subprocess import call
 from typing import List
 
 import requests
 from requests.exceptions import ReadTimeout
 
-from model.mongo import Articles
 from PttWebCrawler.crawler import PttWebCrawler
+from model.mongo import Articles
 
 watch = ['微波爐', '風扇', '電扇', '內湖', '松山', 'Mac', 'iPhone']
 ignore = ['[公告]', ]
@@ -140,8 +140,8 @@ def on_crawled(json_string: str):
 
 def notify(item: dict):
     article_id = item['article_id']
-    title = item['article_title']
-    content = item['content']
+    title = item['article_title'].replace('"', '\\"')
+    content = item['content'].replace('"', '\\"')
     date = item['date']
 
     # chekc ignore
